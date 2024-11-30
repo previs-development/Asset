@@ -48,7 +48,11 @@ public class AddCamera : MonoBehaviour
                 // 시각적 프리팹을 새로운 카메라의 자식으로 생성
                 GameObject visual = Instantiate(cameraVisualPrefab, cameraObj.transform);
                 visual.transform.localPosition = Vector3.zero; // 카메라 위치에 시각적 프리팹 배치
-                visual.transform.localRotation = Quaternion.identity; // 회전 초기화
+
+                // 회전 조정: X축을 -1배, Y축에 180도 추가
+                Vector3 currentEuler = visual.transform.localRotation.eulerAngles;
+                Vector3 adjustedEuler = new Vector3(-currentEuler.x, currentEuler.y + 180f, currentEuler.z);
+                visual.transform.localRotation = Quaternion.Euler(adjustedEuler); // 회전 적용
 
                 // CameraSelector의 targetCamera 필드 설정
                 CameraSelector selector = visual.GetComponent<CameraSelector>();

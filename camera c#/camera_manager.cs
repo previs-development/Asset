@@ -37,6 +37,12 @@ public class CameraManager : MonoBehaviour
         {
             SwitchToMainCamera();
         }
+
+        // Delete 키를 눌렀을 때 현재 활성화된 카메라 삭제
+        if (Input.GetKeyDown(KeyCode.Delete))
+        {
+            RemoveCurrentCamera();
+        }
     }
 
     // 특정 카메라로 전환하는 메서드
@@ -82,6 +88,35 @@ public class CameraManager : MonoBehaviour
         if (newCamera != null && !cameras.Contains(newCamera))
         {
             cameras.Add(newCamera);
+        }
+    }
+
+    // 현재 활성화된 카메라를 삭제하고 메인 카메라로 전환하는 메서드
+    public void RemoveCurrentCamera()
+    {
+        // 메인 카메라는 삭제할 수 없음
+        if (currentCameraIndex <= 0 || currentCameraIndex >= cameras.Count)
+        {
+            Debug.LogWarning("삭제할 수 있는 활성 카메라가 없습니다. (메인 카메라는 삭제할 수 없습니다.)");
+            return;
+        }
+
+        Camera cameraToRemove = cameras[currentCameraIndex];
+
+        if (cameraToRemove != null)
+        {
+            // 카메라 비활성화 및 삭제
+            cameraToRemove.enabled = false;
+            cameras.RemoveAt(currentCameraIndex);
+            Destroy(cameraToRemove.gameObject);
+            Debug.Log($"카메라 '{cameraToRemove.name}'가 삭제되었습니다.");
+
+            // 메인 카메라로 전환
+            SwitchToMainCamera();
+        }
+        else
+        {
+            Debug.LogError("삭제하려는 카메라가 존재하지 않습니다.");
         }
     }
 }

@@ -3,12 +3,11 @@ using UnityEngine;
 public class AddCamera : MonoBehaviour
 {
     public GameObject cameraPrefab; // 카메라 프리팹
-    // public Vector3 spawnPosition = Vector3.zero; // 기존의 고정 위치는 삭제 또는 사용 안 함
 
     // CameraManager를 참조하기 위한 변수
     public CameraManager cameraManager;
 
-    // 카메라 큐브 프리팹 (검정색 큐브)
+    // 카메라 시각적 프리팹 (새로운 카메라 디자인 프리팹)
     public GameObject cameraVisualPrefab;
 
     public void SpawnCamera()
@@ -19,7 +18,7 @@ public class AddCamera : MonoBehaviour
             return;
         }
 
-        // 메인 카메라의 현재 위치를 가져옴
+        // 메인 카메라의 현재 위치와 회전을 가져옴
         Vector3 spawnPosition = cameraManager.mainCamera.transform.position;
         Quaternion spawnRotation = cameraManager.mainCamera.transform.rotation;
 
@@ -37,28 +36,30 @@ public class AddCamera : MonoBehaviour
         // CameraManager에 새 카메라 추가
         cameraManager.AddCamera(newCamera);
 
-        // 메인 카메라가 아니면 시점 전환 및 큐브 생성
+        // 메인 카메라가 아니면 시점 전환 및 시각적 표시 프리팹 생성
         if (newCamera != cameraManager.mainCamera)
         {
             // 시점 전환
             cameraManager.SwitchToCamera(newCamera);
 
-            // 검정색 큐브 시각적 표시 추가
+            // 시각적 표시 프리팹 추가
             if (cameraVisualPrefab != null)
             {
-                GameObject visual = Instantiate(cameraVisualPrefab, cameraObj.transform.position, cameraObj.transform.rotation, cameraObj.transform);
-                visual.transform.localScale = Vector3.one * 0.5f; // 큐브 크기 조정
+                // 시각적 프리팹을 새로운 카메라의 자식으로 생성
+                GameObject visual = Instantiate(cameraVisualPrefab, cameraObj.transform);
+                visual.transform.localPosition = Vector3.zero; // 카메라 위치에 시각적 프리팹 배치
+                visual.transform.localRotation = Quaternion.identity; // 회전 초기화
 
-                // 큐브에 클릭 이벤트를 위한 컴포넌트 추가
-                BoxCollider collider = visual.GetComponent<BoxCollider>();
-                if (collider == null)
+                // CameraSelector의 targetCamera 필드 설정
+                CameraSelector selector = visual.GetComponent<CameraSelector>();
+                if (selector != null)
                 {
-                    collider = visual.AddComponent<BoxCollider>();
+                    selector.targetCamera = newCamera;
                 }
-
-                // 클릭 이벤트 처리 스크립트 추가
-                CameraSelector selector = visual.AddComponent<CameraSelector>();
-                selector.targetCamera = newCamera;
+                else
+                {
+                    Debug.LogError("시각적 프리팹에 CameraSelector 스크립트가 없습니다.");
+                }
             }
         }
     }

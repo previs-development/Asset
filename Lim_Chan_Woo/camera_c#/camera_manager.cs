@@ -12,6 +12,10 @@ public class CameraManager : MonoBehaviour
     // 현재 활성화된 카메라의 인덱스
     private int currentCameraIndex = -1;
 
+    // 카메라 전환 이벤트
+    public delegate void CameraSwitched(Camera newCamera);
+    public event CameraSwitched OnCameraSwitched;
+
     void Start()
     {
         if (mainCamera == null)
@@ -28,6 +32,9 @@ public class CameraManager : MonoBehaviour
         cameras.Add(mainCamera);
         mainCamera.enabled = true;
         currentCameraIndex = 0;
+
+        // 이벤트 발생
+        OnCameraSwitched?.Invoke(mainCamera);
     }
 
     void Update()
@@ -60,6 +67,9 @@ public class CameraManager : MonoBehaviour
         // 새로운 카메라 활성화
         newCamera.enabled = true;
         currentCameraIndex = cameras.IndexOf(newCamera);
+
+        // 이벤트 발생
+        OnCameraSwitched?.Invoke(newCamera);
     }
 
     // 메인 카메라로 전환하는 메서드
@@ -79,6 +89,9 @@ public class CameraManager : MonoBehaviour
             // 메인 카메라 활성화
             mainCamera.enabled = true;
             currentCameraIndex = 0;
+
+            // 이벤트 발생
+            OnCameraSwitched?.Invoke(mainCamera);
         }
     }
 
@@ -118,5 +131,17 @@ public class CameraManager : MonoBehaviour
         {
             Debug.LogError("삭제하려는 카메라가 존재하지 않습니다.");
         }
+    }
+
+    // 현재 활성화된 카메라 가져오기
+    public Camera GetCurrentCamera()
+    {
+        if (currentCameraIndex >= 0 && currentCameraIndex < cameras.Count)
+        {
+            return cameras[currentCameraIndex];
+        }
+
+        Debug.LogWarning("현재 활성화된 카메라가 없습니다.");
+        return null;
     }
 }

@@ -39,7 +39,37 @@ public class LightSpawner : MonoBehaviour
 
         if (attachedCamera != null)
         {
+            // 조명과 시각적 프리팹을 카메라의 자식으로 설정하여 카메라와 함께 이동하도록 함
+            lightObject.transform.SetParent(cameraObject.transform, true);
+            visualObject.transform.SetParent(cameraObject.transform, true);
+
+            // Visual Prefab과 조명 연동
+            LightSelector lightSelector = visualObject.GetComponent<LightSelector>();
+            if (lightSelector != null)
+            {
+                lightSelector.cameraManager = cameraManager;
+                lightSelector.targetCamera = attachedCamera;
+            }
+            else
+            {
+                Debug.LogError("시각적 프리팹에 LightSelector 스크립트가 없습니다.");
+            }
+
+            // LightProperties 연동
+            LightProperties lightProperties = visualObject.GetComponent<LightProperties>();
+            if (lightProperties != null)
+            {
+                lightProperties.SetLight(lightComponent);
+            }
+            else
+            {
+                Debug.LogError("시각적 프리팹에 LightProperties 스크립트가 없습니다.");
+            }
+
+            // CameraManager에 새 카메라 추가
             cameraManager.AddCamera(attachedCamera);
+
+            // LightProperties가 설정된 후에 카메라 전환
             cameraManager.SwitchToCamera(attachedCamera);
         }
         else
@@ -47,29 +77,6 @@ public class LightSpawner : MonoBehaviour
             Debug.LogError("생성된 카메라 프리팹에 Camera 컴포넌트가 없습니다.");
             Destroy(cameraObject);
             return;
-        }
-
-        // 조명과 시각적 프리팹을 카메라의 자식으로 설정하여 카메라와 함께 이동하도록 함
-        lightObject.transform.SetParent(cameraObject.transform, true);
-        visualObject.transform.SetParent(cameraObject.transform, true);
-
-        // Visual Prefab과 조명 연동
-        LightSelector lightSelector = visualObject.GetComponent<LightSelector>();
-        if (lightSelector != null)
-        {
-            lightSelector.cameraManager = cameraManager;
-            lightSelector.targetCamera = attachedCamera;
-        }
-        else
-        {
-            Debug.LogError("시각적 프리팹에 LightSelector 스크립트가 없습니다.");
-        }
-
-        // LightProperties 연동 (선택 사항)
-        LightProperties lightProperties = visualObject.GetComponent<LightProperties>();
-        if (lightProperties != null)
-        {
-            lightProperties.SetLight(lightComponent);
         }
     }
 }

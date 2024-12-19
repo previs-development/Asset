@@ -4,13 +4,90 @@ public class LightControllerUI : MonoBehaviour
 {
     public FlexibleColorPicker colorPicker; // Flexible Color Picker
     public LightProperties lightProperties; // LightProperties 스크립트
+    public GameObject lightControlPanel;    // LightControlPanel UI 패널
+
+    private CameraManager cameraManager;
+
+    void OnEnable()
+    {
+        cameraManager = FindObjectOfType<CameraManager>();
+        if (cameraManager != null)
+        {
+            cameraManager.OnCameraSwitched += UpdateLightProperties;
+        }
+
+        // Ensure LightControlPanel is hidden initially
+        if (lightControlPanel != null)
+        {
+            lightControlPanel.SetActive(false);
+        }
+    }
+
+    void OnDisable()
+    {
+        if (cameraManager != null)
+        {
+            cameraManager.OnCameraSwitched -= UpdateLightProperties;
+        }
+    }
 
     void Start()
     {
         if (colorPicker != null)
         {
-            // Color Picker의 색상 변경 이벤트 연결
+            // Connect color picker event
             colorPicker.onColorChange.AddListener(UpdateLightColor);
+        }
+
+        // Set initial panel state based on current camera
+        if (cameraManager != null)
+        {
+            Camera currentCamera = cameraManager.GetCurrentCamera();
+            UpdateLightProperties(currentCamera);
+        }
+    }
+
+    void UpdateLightProperties(Camera newCamera)
+    {
+        if (newCamera != null)
+        {
+            // Check if the new camera is a LightCamera
+            if (newCamera.CompareTag("LightCamera"))
+            {
+                // Find LightProperties in the new camera's children
+                LightProperties lp = newCamera.GetComponentInChildren<LightProperties>();
+                if (lp != null)
+                {
+                    lightProperties = lp;
+                    Debug.Log($"LightControllerUI: LightProperties updated - {lp.gameObject.name}");
+
+                    // Show the LightControlPanel
+                    if (lightControlPanel != null)
+                    {
+                        lightControlPanel.SetActive(true);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("LightControllerUI: No LightProperties found in the new camera.");
+                    lightProperties = null;
+
+                    // Hide the LightControlPanel
+                    if (lightControlPanel != null)
+                    {
+                        lightControlPanel.SetActive(false);
+                    }
+                }
+            }
+            else
+            {
+                // If not a LightCamera, hide the LightControlPanel
+                lightProperties = null;
+                if (lightControlPanel != null)
+                {
+                    lightControlPanel.SetActive(false);
+                }
+            }
         }
     }
 
@@ -18,37 +95,11 @@ public class LightControllerUI : MonoBehaviour
     {
         if (lightProperties != null)
         {
-            lightProperties.UpdateColor(newColor); // 조명 색상 업데이트
+            lightProperties.UpdateColor(newColor); // Update light color
         }
-    }
-
-    // UI 슬라이더나 드롭다운 등에서 호출할 수 있는 메서드들 추가
-    public void SetIntensity(float intensity)
-    {
-        if (lightProperties != null)
+        else
         {
-            lightProperties.UpdateIntensity(intensity); // 조명 강도 업데이트
-        }
-    }
-
-    public void SetLightMode(int mode)
-    {
-        if (lightProperties != null)
-        {
-            LightType lightType = LightType.Point;
-            switch (mode)
-            {
-                case 0:
-                    lightType = LightType.Point;
-                    break;
-                case 1:
-                    lightType = LightType.Spot;
-                    break;
-                case 2:
-                    lightType = LightType.Directional;
-                    break;
-            }
-            lightProperties.UpdateMode(lightType); // 조명 모드 업데이트
+            Debug.LogWarning("LightControllerUI: LightProperties not set.");
         }
     }
 }

@@ -11,70 +11,84 @@ public class LightSpawner : MonoBehaviour
     {
         if (cameraManager == null)
         {
-            Debug.LogError("CameraManager가 연결되지 않았습니다.");
+            Debug.LogError("LightSpawner: CameraManager is not assigned.");
             return;
         }
 
-        // 메인 카메라의 정확한 위치와 회전을 가져옴
+        // Get main camera's position and rotation
         Vector3 spawnPosition = cameraManager.mainCamera.transform.position;
         Quaternion spawnRotation = cameraManager.mainCamera.transform.rotation;
 
-        // 조명 생성
+        // Instantiate light
         GameObject lightObject = Instantiate(lightPrefab, spawnPosition, spawnRotation);
         Light lightComponent = lightObject.GetComponent<Light>();
         if (lightComponent == null)
         {
-            Debug.LogError("조명 프리팹에 Light 컴포넌트가 없습니다.");
+            Debug.LogError("LightSpawner: lightPrefab does not have a Light component.");
             Destroy(lightObject);
             return;
         }
+        else
+        {
+            Debug.Log($"LightSpawner: Light instantiated at {spawnPosition}");
+        }
 
-        // 시각적 프리팹 생성
+        // Instantiate visual prefab
         GameObject visualObject = Instantiate(visualPrefab, spawnPosition, spawnRotation);
-        visualObject.transform.localRotation = Quaternion.identity; // 기본 회전 유지
+        visualObject.transform.localRotation = Quaternion.identity; // Reset rotation
+        Debug.Log("LightSpawner: VisualPrefab instantiated.");
 
-        // 카메라 생성 및 위치 설정
+        // Instantiate camera
         GameObject cameraObject = Instantiate(cameraPrefab, spawnPosition, spawnRotation);
         Camera attachedCamera = cameraObject.GetComponent<Camera>();
 
         if (attachedCamera != null)
         {
-            // 조명과 시각적 프리팹을 카메라의 자식으로 설정하여 카메라와 함께 이동하도록 함
+            // Tag the new camera as LightCamera
+            cameraObject.tag = "LightCamera";
+            Debug.Log("LightSpawner: New camera tagged as LightCamera.");
+
+            // Parent light and visual prefab to the new camera
             lightObject.transform.SetParent(cameraObject.transform, true);
             visualObject.transform.SetParent(cameraObject.transform, true);
+            Debug.Log("LightSpawner: Light and VisualPrefab parented to LightCamera.");
 
-            // Visual Prefab과 조명 연동
+            // Set LightSelector references
             LightSelector lightSelector = visualObject.GetComponent<LightSelector>();
             if (lightSelector != null)
             {
                 lightSelector.cameraManager = cameraManager;
                 lightSelector.targetCamera = attachedCamera;
+                Debug.Log("LightSpawner: LightSelector references set.");
             }
             else
             {
-                Debug.LogError("시각적 프리팹에 LightSelector 스크립트가 없습니다.");
+                Debug.LogError("LightSpawner: visualPrefab does not have a LightSelector component.");
             }
 
-            // LightProperties 연동
+            // Set LightProperties
             LightProperties lightProperties = visualObject.GetComponent<LightProperties>();
             if (lightProperties != null)
             {
                 lightProperties.SetLight(lightComponent);
+                Debug.Log("LightSpawner: LightProperties set.");
             }
             else
             {
-                Debug.LogError("시각적 프리팹에 LightProperties 스크립트가 없습니다.");
+                Debug.LogError("LightSpawner: visualPrefab does not have a LightProperties component.");
             }
 
-            // CameraManager에 새 카메라 추가
+            // Add the new camera to CameraManager
             cameraManager.AddCamera(attachedCamera);
+            Debug.Log("LightSpawner: New camera added to CameraManager.");
 
-            // LightProperties가 설정된 후에 카메라 전환
+            // Switch to the new camera after LightProperties is set
             cameraManager.SwitchToCamera(attachedCamera);
+            Debug.Log("LightSpawner: Switched to new LightCamera.");
         }
         else
         {
-            Debug.LogError("생성된 카메라 프리팹에 Camera 컴포넌트가 없습니다.");
+            Debug.LogError("LightSpawner: cameraPrefab does not have a Camera component.");
             Destroy(cameraObject);
             return;
         }

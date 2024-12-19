@@ -7,14 +7,7 @@ public class LightProperties : MonoBehaviour
     public void SetLight(Light light)
     {
         targetLight = light;
-    }
-
-    public void UpdateIntensity(float intensity)
-    {
-        if (targetLight != null)
-        {
-            targetLight.intensity = intensity;
-        }
+        Debug.Log($"LightProperties: Light set to {light.name}");
     }
 
     public void UpdateColor(Color color)
@@ -22,14 +15,11 @@ public class LightProperties : MonoBehaviour
         if (targetLight != null)
         {
             targetLight.color = color;
+            Debug.Log($"LightProperties: Light color updated to {color}");
         }
-    }
-
-    public void UpdateMode(LightType type)
-    {
-        if (targetLight != null)
+        else
         {
-            targetLight.type = type;
+            Debug.LogWarning("LightProperties: targetLight is not set.");
         }
     }
 }

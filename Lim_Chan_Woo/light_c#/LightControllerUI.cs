@@ -14,12 +14,25 @@ public class LightControllerUI : MonoBehaviour
         if (cameraManager != null)
         {
             cameraManager.OnCameraSwitched += UpdateLightProperties;
+            Debug.Log("LightControllerUI: Subscribed to OnCameraSwitched event.");
+        }
+        else
+        {
+            Debug.LogError("LightControllerUI: CameraManager not found.");
         }
 
         // Ensure LightControlPanel is hidden initially
         if (lightControlPanel != null)
         {
             lightControlPanel.SetActive(false);
+            Debug.Log("LightControllerUI: LightControlPanel set to inactive.");
+        }
+
+        // Set initial panel state based on current camera
+        if (cameraManager != null)
+        {
+            Camera currentCamera = cameraManager.GetCurrentCamera();
+            UpdateLightProperties(currentCamera);
         }
     }
 
@@ -28,6 +41,7 @@ public class LightControllerUI : MonoBehaviour
         if (cameraManager != null)
         {
             cameraManager.OnCameraSwitched -= UpdateLightProperties;
+            Debug.Log("LightControllerUI: Unsubscribed from OnCameraSwitched event.");
         }
     }
 
@@ -37,13 +51,7 @@ public class LightControllerUI : MonoBehaviour
         {
             // Connect color picker event
             colorPicker.onColorChange.AddListener(UpdateLightColor);
-        }
-
-        // Set initial panel state based on current camera
-        if (cameraManager != null)
-        {
-            Camera currentCamera = cameraManager.GetCurrentCamera();
-            UpdateLightProperties(currentCamera);
+            Debug.Log("LightControllerUI: Connected UpdateLightColor to colorPicker.");
         }
     }
 
@@ -65,6 +73,7 @@ public class LightControllerUI : MonoBehaviour
                     if (lightControlPanel != null)
                     {
                         lightControlPanel.SetActive(true);
+                        Debug.Log("LightControllerUI: LightControlPanel set to active.");
                     }
                 }
                 else
@@ -76,6 +85,7 @@ public class LightControllerUI : MonoBehaviour
                     if (lightControlPanel != null)
                     {
                         lightControlPanel.SetActive(false);
+                        Debug.Log("LightControllerUI: LightControlPanel set to inactive.");
                     }
                 }
             }
@@ -86,6 +96,7 @@ public class LightControllerUI : MonoBehaviour
                 if (lightControlPanel != null)
                 {
                     lightControlPanel.SetActive(false);
+                    Debug.Log("LightControllerUI: LightControlPanel set to inactive (non-LightCamera).");
                 }
             }
         }
@@ -96,10 +107,13 @@ public class LightControllerUI : MonoBehaviour
         if (lightProperties != null)
         {
             lightProperties.UpdateColor(newColor); // Update light color
+            Debug.Log($"LightControllerUI: Updated light color to {newColor}");
         }
         else
         {
             Debug.LogWarning("LightControllerUI: LightProperties not set.");
         }
     }
+
+    // Optional: Future methods for SetIntensity and SetLightMode
 }

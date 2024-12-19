@@ -10,6 +10,7 @@ public class LightSelector : MonoBehaviour
         if (targetCamera != null && cameraManager != null)
         {
             cameraManager.SwitchToCamera(targetCamera);
+            Debug.Log("LightSelector: Camera switched to LightCamera.");
         }
     }
 }

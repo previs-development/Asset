@@ -3,14 +3,18 @@ using UnityEngine;
 
 public class CameraManager : MonoBehaviour
 {
-    // 모든 카메라를 저장할 리스트
+    // All cameras list
     private List<Camera> cameras = new List<Camera>();
 
-    // 메인 카메라
+    // Main camera
     public Camera mainCamera;
 
-    // 현재 활성화된 카메라의 인덱스
+    // Current active camera index
     private int currentCameraIndex = -1;
+
+    // Camera switch event
+    public delegate void CameraSwitched(Camera newCamera);
+    public event CameraSwitched OnCameraSwitched;
 
     void Start()
     {
@@ -19,50 +23,58 @@ public class CameraManager : MonoBehaviour
             mainCamera = Camera.main;
             if (mainCamera == null)
             {
-                Debug.LogError("Main Camera가 설정되지 않았습니다.");
+                Debug.LogError("CameraManager: Main Camera is not set.");
                 return;
             }
         }
 
-        // 메인 카메라를 리스트에 추가하고 활성화
+        // Add main camera to list and activate it
         cameras.Add(mainCamera);
         mainCamera.enabled = true;
         currentCameraIndex = 0;
+
+        // Invoke event
+        OnCameraSwitched?.Invoke(mainCamera);
+        Debug.Log("CameraManager: OnCameraSwitched 이벤트 발생 - Main Camera");
     }
 
     void Update()
     {
-        // ESC 키를 눌렀을 때 메인 카메라로 전환
+        // Press ESC to switch to main camera
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             SwitchToMainCamera();
         }
 
-        // Delete 키를 눌렀을 때 현재 활성화된 카메라 삭제
+        // Press Delete to remove current camera
         if (Input.GetKeyDown(KeyCode.Delete))
         {
             RemoveCurrentCamera();
         }
     }
 
-    // 특정 카메라로 전환하는 메서드
+    // Switch to specific camera
     public void SwitchToCamera(Camera newCamera)
     {
         if (newCamera == null || !cameras.Contains(newCamera))
             return;
 
-        // 현재 활성화된 카메라 비활성화
+        // Disable current camera
         if (currentCameraIndex >= 0 && currentCameraIndex < cameras.Count)
         {
             cameras[currentCameraIndex].enabled = false;
         }
 
-        // 새로운 카메라 활성화
+        // Enable new camera
         newCamera.enabled = true;
         currentCameraIndex = cameras.IndexOf(newCamera);
+
+        // Invoke event and log
+        OnCameraSwitched?.Invoke(newCamera);
+        Debug.Log($"CameraManager: OnCameraSwitched 이벤트 발생 - {newCamera.name}");
     }
 
-    // 메인 카메라로 전환하는 메서드
+    // Switch to main camera
     public void SwitchToMainCamera()
     {
         if (mainCamera == null)
@@ -70,34 +82,39 @@ public class CameraManager : MonoBehaviour
 
         if (currentCameraIndex != 0)
         {
-            // 현재 활성화된 카메라 비활성화
+            // Disable current camera
             if (currentCameraIndex >= 0 && currentCameraIndex < cameras.Count)
             {
                 cameras[currentCameraIndex].enabled = false;
             }
 
-            // 메인 카메라 활성화
+            // Enable main camera
             mainCamera.enabled = true;
             currentCameraIndex = 0;
+
+            // Invoke event and log
+            OnCameraSwitched?.Invoke(mainCamera);
+            Debug.Log("CameraManager: OnCameraSwitched 이벤트 발생 - Main Camera");
         }
     }
 
-    // 새로운 카메라를 리스트에 추가하는 메서드
+    // Add new camera to list
     public void AddCamera(Camera newCamera)
     {
         if (newCamera != null && !cameras.Contains(newCamera))
         {
             cameras.Add(newCamera);
+            Debug.Log($"CameraManager: Camera '{newCamera.name}' added to the camera list.");
         }
     }
 
-    // 현재 활성화된 카메라를 삭제하고 메인 카메라로 전환하는 메서드
+    // Remove current camera and switch to main
     public void RemoveCurrentCamera()
     {
-        // 메인 카메라는 삭제할 수 없음
+        // Cannot remove main camera
         if (currentCameraIndex <= 0 || currentCameraIndex >= cameras.Count)
         {
-            Debug.LogWarning("삭제할 수 있는 활성 카메라가 없습니다. (메인 카메라는 삭제할 수 없습니다.)");
+            Debug.LogWarning("CameraManager: No active camera to remove. (Cannot remove Main Camera.)");
             return;
         }
 
@@ -105,18 +122,30 @@ public class CameraManager : MonoBehaviour
 
         if (cameraToRemove != null)
         {
-            // 카메라 비활성화 및 삭제
+            // Disable and remove camera
             cameraToRemove.enabled = false;
             cameras.RemoveAt(currentCameraIndex);
             Destroy(cameraToRemove.gameObject);
-            Debug.Log($"카메라 '{cameraToRemove.name}'가 삭제되었습니다.");
+            Debug.Log($"CameraManager: Camera '{cameraToRemove.name}' has been removed.");
 
-            // 메인 카메라로 전환
+            // Switch to main camera
             SwitchToMainCamera();
         }
         else
         {
-            Debug.LogError("삭제하려는 카메라가 존재하지 않습니다.");
+            Debug.LogError("CameraManager: Camera to remove does not exist.");
         }
+    }
+
+    // Get current active camera
+    public Camera GetCurrentCamera()
+    {
+        if (currentCameraIndex >= 0 && currentCameraIndex < cameras.Count)
+        {
+            return cameras[currentCameraIndex];
+        }
+
+        Debug.LogWarning("CameraManager: No active camera.");
+        return null;
     }
 }

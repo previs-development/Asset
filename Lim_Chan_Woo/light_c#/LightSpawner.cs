@@ -15,11 +15,11 @@ public class LightSpawner : MonoBehaviour
             return;
         }
 
-        // Get main camera's position and rotation
+        // 메인 카메라의 위치와 회전을 가져옴
         Vector3 spawnPosition = cameraManager.mainCamera.transform.position;
         Quaternion spawnRotation = cameraManager.mainCamera.transform.rotation;
 
-        // Instantiate light
+        // 조명 생성
         GameObject lightObject = Instantiate(lightPrefab, spawnPosition, spawnRotation);
         Light lightComponent = lightObject.GetComponent<Light>();
         if (lightComponent == null)
@@ -30,30 +30,32 @@ public class LightSpawner : MonoBehaviour
         }
         else
         {
-            Debug.Log($"LightSpawner: Light instantiated at {spawnPosition}");
+            // 기본 색상을 흰색으로 설정
+            lightComponent.color = Color.white;
+            Debug.Log($"LightSpawner: Light instantiated at {spawnPosition} with color white.");
         }
 
-        // Instantiate visual prefab
+        // 시각적 프리팹 생성
         GameObject visualObject = Instantiate(visualPrefab, spawnPosition, spawnRotation);
-        visualObject.transform.localRotation = Quaternion.identity; // Reset rotation
+        visualObject.transform.localRotation = Quaternion.identity; // 회전 초기화
         Debug.Log("LightSpawner: VisualPrefab instantiated.");
 
-        // Instantiate camera
+        // 카메라 생성
         GameObject cameraObject = Instantiate(cameraPrefab, spawnPosition, spawnRotation);
         Camera attachedCamera = cameraObject.GetComponent<Camera>();
 
         if (attachedCamera != null)
         {
-            // Tag the new camera as LightCamera
+            // 새 카메라에 LightCamera 태그 할당
             cameraObject.tag = "LightCamera";
             Debug.Log("LightSpawner: New camera tagged as LightCamera.");
 
-            // Parent light and visual prefab to the new camera
+            // 조명과 시각적 프리팹을 새 카메라의 자식으로 설정
             lightObject.transform.SetParent(cameraObject.transform, true);
             visualObject.transform.SetParent(cameraObject.transform, true);
             Debug.Log("LightSpawner: Light and VisualPrefab parented to LightCamera.");
 
-            // Set LightSelector references
+            // LightSelector 참조 설정
             LightSelector lightSelector = visualObject.GetComponent<LightSelector>();
             if (lightSelector != null)
             {
@@ -66,7 +68,7 @@ public class LightSpawner : MonoBehaviour
                 Debug.LogError("LightSpawner: visualPrefab does not have a LightSelector component.");
             }
 
-            // Set LightProperties
+            // LightProperties 참조 설정
             LightProperties lightProperties = visualObject.GetComponent<LightProperties>();
             if (lightProperties != null)
             {
@@ -78,11 +80,11 @@ public class LightSpawner : MonoBehaviour
                 Debug.LogError("LightSpawner: visualPrefab does not have a LightProperties component.");
             }
 
-            // Add the new camera to CameraManager
+            // 새 카메라를 CameraManager에 추가
             cameraManager.AddCamera(attachedCamera);
             Debug.Log("LightSpawner: New camera added to CameraManager.");
 
-            // Switch to the new camera after LightProperties is set
+            // LightProperties 설정 후 카메라 전환
             cameraManager.SwitchToCamera(attachedCamera);
             Debug.Log("LightSpawner: Switched to new LightCamera.");
         }

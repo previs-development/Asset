@@ -7,6 +7,7 @@ public class LightControllerUI : MonoBehaviour
     public GameObject lightControlPanel;    // LightControlPanel UI 패널
 
     private CameraManager cameraManager;
+    private bool isSettingColor = false; // 프로그램적으로 색상 설정 중인지 여부
 
     void OnEnable()
     {
@@ -21,14 +22,14 @@ public class LightControllerUI : MonoBehaviour
             Debug.LogError("LightControllerUI: CameraManager not found.");
         }
 
-        // Ensure LightControlPanel is hidden initially
+        // LightControlPanel 비활성화
         if (lightControlPanel != null)
         {
             lightControlPanel.SetActive(false);
             Debug.Log("LightControllerUI: LightControlPanel set to inactive.");
         }
 
-        // Set initial panel state based on current camera
+        // 현재 활성 카메라의 LightProperties 업데이트
         if (cameraManager != null)
         {
             Camera currentCamera = cameraManager.GetCurrentCamera();
@@ -49,7 +50,7 @@ public class LightControllerUI : MonoBehaviour
     {
         if (colorPicker != null)
         {
-            // Connect color picker event
+            // ColorPicker의 색상 변경 이벤트 연결
             colorPicker.onColorChange.AddListener(UpdateLightColor);
             Debug.Log("LightControllerUI: Connected UpdateLightColor to colorPicker.");
         }
@@ -57,56 +58,67 @@ public class LightControllerUI : MonoBehaviour
 
     void UpdateLightProperties(Camera newCamera)
     {
-        if (newCamera != null)
+        if (newCamera == null) return;
+
+        if (newCamera.CompareTag("LightCamera"))
         {
-            // Check if the new camera is a LightCamera
-            if (newCamera.CompareTag("LightCamera"))
+            LightProperties lp = newCamera.GetComponentInChildren<LightProperties>();
+            if (lp != null)
             {
-                // Find LightProperties in the new camera's children
-                LightProperties lp = newCamera.GetComponentInChildren<LightProperties>();
-                if (lp != null)
-                {
-                    lightProperties = lp;
-                    Debug.Log($"LightControllerUI: LightProperties updated - {lp.gameObject.name}");
+                lightProperties = lp;
+                Debug.Log($"LightControllerUI: LightProperties updated - {lp.gameObject.name}");
 
-                    // Show the LightControlPanel
-                    if (lightControlPanel != null)
-                    {
-                        lightControlPanel.SetActive(true);
-                        Debug.Log("LightControllerUI: LightControlPanel set to active.");
-                    }
+                if (lightControlPanel != null)
+                {
+                    lightControlPanel.SetActive(true);
+                    Debug.Log("LightControllerUI: LightControlPanel set to active.");
                 }
-                else
-                {
-                    Debug.LogWarning("LightControllerUI: No LightProperties found in the new camera.");
-                    lightProperties = null;
 
-                    // Hide the LightControlPanel
-                    if (lightControlPanel != null)
-                    {
-                        lightControlPanel.SetActive(false);
-                        Debug.Log("LightControllerUI: LightControlPanel set to inactive.");
-                    }
+                // ColorPicker 색상 설정 시 이벤트 제거 및 재등록
+                if (colorPicker != null && lightProperties != null)
+                {
+                    // 이벤트 제거
+                    colorPicker.onColorChange.RemoveListener(UpdateLightColor);
+
+                    // 프로그램적으로 색상 설정
+                    isSettingColor = true;
+                    colorPicker.color = lightProperties.GetCurrentColor();
+                    isSettingColor = false;
+
+                    // 이벤트 재등록
+                    colorPicker.onColorChange.AddListener(UpdateLightColor);
+
+                    Debug.Log($"LightControllerUI: ColorPicker color set to {lightProperties.GetCurrentColor()}");
                 }
             }
             else
             {
-                // If not a LightCamera, hide the LightControlPanel
                 lightProperties = null;
                 if (lightControlPanel != null)
                 {
                     lightControlPanel.SetActive(false);
-                    Debug.Log("LightControllerUI: LightControlPanel set to inactive (non-LightCamera).");
+                    Debug.Log("LightControllerUI: LightControlPanel set to inactive.");
                 }
+            }
+        }
+        else
+        {
+            lightProperties = null;
+            if (lightControlPanel != null)
+            {
+                lightControlPanel.SetActive(false);
+                Debug.Log("LightControllerUI: LightControlPanel set to inactive (non-LightCamera).");
             }
         }
     }
 
     void UpdateLightColor(Color newColor)
     {
+        if (isSettingColor) return; // 프로그램적으로 설정 중이면 무시
+
         if (lightProperties != null)
         {
-            lightProperties.UpdateColor(newColor); // Update light color
+            lightProperties.UpdateColor(newColor);
             Debug.Log($"LightControllerUI: Updated light color to {newColor}");
         }
         else
@@ -114,6 +126,4 @@ public class LightControllerUI : MonoBehaviour
             Debug.LogWarning("LightControllerUI: LightProperties not set.");
         }
     }
-
-    // Optional: Future methods for SetIntensity and SetLightMode
 }

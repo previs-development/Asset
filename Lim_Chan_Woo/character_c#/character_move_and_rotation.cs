@@ -44,6 +44,12 @@ public class CharacterControllerCombined : MonoBehaviour
         {
             DragCharacter();
         }
+
+        // Delete 키 입력 감지
+        if ((isRotating || isDragging) && Input.GetKeyDown(KeyCode.Delete))
+        {
+            DestroyCharacter();
+        }
     }
 
     void HandleMouseInput()
@@ -146,5 +152,12 @@ public class CharacterControllerCombined : MonoBehaviour
             // 드래그 중 현재 rotationSpeed 값 출력 (디버그 로그 제거)
             // Debug.Log("드래그 중 Rotation Speed: " + rotationSpeed);
         }
+    }
+
+    void DestroyCharacter()
+    {
+        // 캐릭터 삭제 전에 필요한 추가 작업이 있으면 여기에 작성
+        Debug.Log($"{gameObject.name}이(가) 삭제되었습니다.");
+        Destroy(gameObject);
     }
 }

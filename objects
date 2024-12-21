@@ -1,0 +1,58 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+public class AssetManager : MonoBehaviour
+{
+    public Dropdown dropdown;          // 드롭다운 UI
+    public Button applyButton;        // Apply 버튼
+    public Button clearButton;        // Clear 버튼         
+    public Transform spawnParent;     // 소환된 오브젝트의 부모
+    public string assetFolderPath = "Prefabs";    // 에셋이 저장된 폴더 경로 (Resources 폴더 내부)
+
+    private List<GameObject> spawnedObjects = new List<GameObject>(); // 소환된 오브젝트 관리 리스트
+
+    void Start()
+    {
+        // 버튼에 이벤트 리스너 추가
+        applyButton.onClick.AddListener(SpawnSelectedAsset);
+        clearButton.onClick.AddListener(ClearSpawnedAssets);
+    }
+
+    void SpawnSelectedAsset()
+    {
+        string selectedAssetName = dropdown.options[dropdown.value].text;
+
+        // 올바른 경로를 확인
+        string assetPath = $"{assetFolderPath}/{selectedAssetName}";
+        Debug.Log($"로드하려는 경로: {assetPath}");
+
+        // Resources에서 에셋 로드
+        GameObject asset = Resources.Load<GameObject>(assetPath);
+        if (asset != null)
+        {
+            Vector3 spawnPosition = new Vector3(342, 135, -427); // 원하는 위치로 설정
+            GameObject newObject = Instantiate(asset, spawnPosition, Quaternion.identity, spawnParent);
+            
+            // 리스트에 소환된 오브젝트 추가
+            spawnedObjects.Add(newObject);
+
+            Debug.Log($"'{selectedAssetName}' 소환 완료. 현재 소환된 오브젝트 수: {spawnedObjects.Count}");
+        }
+        else
+        {
+            Debug.LogError($"'{assetPath}' 경로에서 에셋을 찾을 수 없습니다!");
+        }
+    }
+
+    void ClearSpawnedAssets()
+    {
+        // 모든 소환된 오브젝트 제거
+        foreach (GameObject obj in spawnedObjects)
+        {
+            Destroy(obj);
+        }
+        spawnedObjects.Clear(); // 리스트 초기화
+        Debug.Log("모든 소환된 오브젝트를 삭제했습니다.");
+    }
+}

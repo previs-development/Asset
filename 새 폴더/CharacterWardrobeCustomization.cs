@@ -26,12 +26,15 @@ public class FullCharacterCustomizer : MonoBehaviour
     public Button clearWardrobeButton;
     public Button exportButton;
 
-    [Header("Movement for Exported Characters")]
-    public float characterMoveSpeed = 3f;       // 캐릭터 이동 속도
-
     [Header("Exported Characters Positioning")]
     public Vector3 exportPositionOffset = new Vector3(2.0f, 0, 0); // 각 캐릭터 간의 간격
     private int exportedCharacterCount = 0;     // 내보낸 캐릭터 수 추적
+
+    // 드래그 관련 변수 추가
+    private bool isDragging = false;
+    private Vector3 dragOffset;
+    private Plane dragPlane;
+    private float dragSpeed = 10f; // 드래그 속도 조절 변수
 
     // UMA 관련 내부 변수
     private List<DynamicCharacterAvatar> allCharacters = new List<DynamicCharacterAvatar>();
@@ -70,40 +73,38 @@ public class FullCharacterCustomizer : MonoBehaviour
 
     void Update()
     {
-        // (1) 메인 카메라가 켜져 있는 상태에서만 마우스 클릭 + WASD 이동 처리
         if (mainCamera != null && mainCamera.gameObject.activeInHierarchy)
         {
-            // 1) 마우스 왼클릭으로 캐릭터 선택
-            if (Input.GetMouseButtonDown(0))
+            // 드래그 로직
+            if (isDragging)
             {
-                SelectAvatarByMouseClick();
+                if (Input.GetMouseButton(0))
+                {
+                    PerformDrag();
+                }
+                else if (Input.GetMouseButtonUp(0))
+                {
+                    EndDrag();
+                }
             }
-
-            // 2) 선택된 캐릭터를 WASD로 이동
-            if (selectedAvatar != null)
+            else
             {
-                float horizontal = Input.GetAxis("Horizontal"); // A(-1) <-> D(+1)
-                float vertical = Input.GetAxis("Vertical");     // W(+1) <-> S(-1)
-
-                Vector3 move = new Vector3(horizontal, 0, vertical)
-                               * characterMoveSpeed
-                               * Time.deltaTime;
-
-                // 충돌 검사를 간단히 처리하려면 CharacterController 등으로 이동해도 됨
-                selectedAvatar.transform.Translate(move, Space.World);
+                if (Input.GetMouseButtonDown(0))
+                {
+                    StartDrag();
+                }
             }
         }
     }
 
     /// <summary>
-    /// 마우스 클릭 → 캐릭터 선택
+    /// 드래그 시작
     /// </summary>
-    private void SelectAvatarByMouseClick()
+    private void StartDrag()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        // 캐릭터나 자식 객체에 Collider가 있어야 Raycast에 걸립니다.
         if (Physics.Raycast(ray, out hit, 1000f))
         {
             var clickedAvatar = hit.collider.GetComponentInParent<DynamicCharacterAvatar>();
@@ -111,6 +112,31 @@ public class FullCharacterCustomizer : MonoBehaviour
             {
                 selectedAvatar = clickedAvatar;
                 Debug.Log($"{selectedAvatar.name} 캐릭터를 선택했습니다.");
+
+                // 드래그 시작 상태 설정
+                isDragging = true;
+
+                // 드래그할 평면 설정 (캐릭터의 현재 위치에 수평한 평면)
+                dragPlane = new Plane(Vector3.up, selectedAvatar.transform.position);
+
+                // 드래그 오프셋 계산
+                float distance;
+                if (dragPlane.Raycast(ray, out distance))
+                {
+                    Vector3 hitPoint = ray.GetPoint(distance);
+                    dragOffset = selectedAvatar.transform.position - hitPoint;
+                }
+                else
+                {
+                    Debug.LogWarning("드래그 평면과 Raycast가 교차하지 않습니다.");
+                    isDragging = false;
+                    selectedAvatar = null; // 드래그 실패 시 선택 초기화
+                }
+
+                // Animator 관련 기능이 있다면 추가할 수 있습니다.
+                // 예를 들어, 드래그 시작 시 애니메이션 변경
+                // var animator = selectedAvatar.GetComponent<Animator>();
+                // if (animator != null) animator.SetBool("isMoving", true);
             }
             else
             {
@@ -121,6 +147,39 @@ public class FullCharacterCustomizer : MonoBehaviour
         {
             Debug.Log("어떤 캐릭터도 클릭되지 않았습니다.");
         }
+    }
+
+    /// <summary>
+    /// 드래그 수행
+    /// </summary>
+    private void PerformDrag()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        float distance;
+
+        if (dragPlane.Raycast(ray, out distance))
+        {
+            Vector3 hitPoint = ray.GetPoint(distance);
+            Vector3 targetPosition = hitPoint + dragOffset;
+
+            // 드래그 속도 조절: 부드러운 이동을 위해 Lerp 사용
+            selectedAvatar.transform.position = Vector3.Lerp(selectedAvatar.transform.position, targetPosition, dragSpeed * Time.deltaTime);
+        }
+    }
+
+    /// <summary>
+    /// 드래그 종료
+    /// </summary>
+    private void EndDrag()
+    {
+        isDragging = false;
+        Debug.Log($"{selectedAvatar.name} 캐릭터 드래그 종료.");
+        selectedAvatar = null; // 선택된 캐릭터 초기화
+
+        // Animator 관련 기능이 있다면 추가할 수 있습니다.
+        // 예를 들어, 드래그 종료 시 애니메이션 변경
+        // var animator = selectedAvatar.GetComponent<Animator>();
+        // if (animator != null) animator.SetBool("isMoving", false);
     }
 
     /// <summary>
@@ -162,7 +221,15 @@ public class FullCharacterCustomizer : MonoBehaviour
         // (3) 레이스별 속옷 착용
         AssignUnderwear(newAvatar, currentRace);
 
-        // (4) 현재 커스터마이징 대상 지정
+        // (4) Collider 추가 (BuildCharacter 이후에 추가)
+        if (newAvatar.GetComponent<Collider>() == null)
+        {
+            Collider collider = newAvatar.gameObject.AddComponent<BoxCollider>();
+            collider.isTrigger = false;
+            Debug.Log($"Collider가 없는 {newAvatar.name}에 BoxCollider를 추가했습니다.");
+        }
+
+        // (5) 현재 커스터마이징 대상 지정
         currentAvatar = newAvatar;
         allCharacters.Add(newAvatar);
 
@@ -171,7 +238,7 @@ public class FullCharacterCustomizer : MonoBehaviour
 
     /// <summary>
     /// 레이스에 맞춰 속옷을 착용시켜 주는 메서드
-    /// (o3n_female, o3n_maled, HumanMale, HumanFemale)
+    /// (HumanMale, HumanFemale)
     /// </summary>
     private void AssignUnderwear(DynamicCharacterAvatar avatar, string raceName)
     {
@@ -182,17 +249,6 @@ public class FullCharacterCustomizer : MonoBehaviour
         {
             switch (raceName)
             {
-                case "o3n_Female":
-                    avatar.SetSlot("UnderwearTop", "o3n_female_bra_01_recipe");
-                    avatar.SetSlot("UnderwearBottom", "o3n_female_undies_01_recipe");
-                    Debug.Log("o3n_Female용 속옷 설정 완료.");
-                    break;
-
-                case "o3n_Male":
-                    avatar.SetSlot("UnderwearBottom", "o3n_male_undies_01_recipe");
-                    Debug.Log("o3n_Male용 속옷 설정 완료.");
-                    break;
-
                 case "HumanMale":
                     avatar.SetSlot("Underwear", "MaleDefaultUnderwear");
                     Debug.Log("HumanMale용 속옷 설정 완료.");
@@ -370,7 +426,8 @@ public class FullCharacterCustomizer : MonoBehaviour
             return;
         }
 
-        currentAvatar.SetSlot(wardrobeRecipe.wardrobeSlot, recipeName);
+        // 수정된 부분: wardrobeRecipe 객체 대신 wardrobeRecipe.name을 전달
+        currentAvatar.SetSlot(wardrobeRecipe.wardrobeSlot, wardrobeRecipe.name);
         currentAvatar.BuildCharacter();
         Debug.Log($"Wardrobe 적용됨: {selected}");
     }
@@ -385,8 +442,7 @@ public class FullCharacterCustomizer : MonoBehaviour
         currentAvatar.ClearSlots();
         currentAvatar.BuildCharacter();
 
-        // 다시 속옷만 착용하게 하려면 아래 호출
-        // AssignUnderwear(currentAvatar, currentRace);
+        Debug.Log("Wardrobe 모두 제거됨.");
     }
 
     /// <summary>
@@ -418,17 +474,8 @@ public class FullCharacterCustomizer : MonoBehaviour
 
         // 카메라 전환: 커스터마이징 카메라 끄고, 메인 카메라 켜기
         if (customizationCamera != null) customizationCamera.gameObject.SetActive(false);
-        if (mainCamera != null) mainCamera.gameObject.SetActive(true);
+        if (mainCamera != null) mainCamera.gameObject.SetActive(true);  
 
         Debug.Log($"{currentAvatar.name} 캐릭터를 메인씬으로 내보냈습니다. 위치: {newPosition}");
     }
 }
-
-
-
-
-
-
-
-
-

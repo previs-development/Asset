@@ -13,10 +13,10 @@ public class FullCharacterCustomizer : MonoBehaviour
 
     [Header("Cameras")]
     public Camera mainCamera;                   // 메인 카메라
-    public Camera customizationCamera;         // 커스터마이징 카메라
+    public Camera customizationCamera;          // 커스터마이징 카메라
 
     [Header("Scene References")]
-    public Transform mainSceneSpawnPoint;       // 내보내기(Export) 시 이동할 위치
+    public Transform mainSceneSpawnPoint;       // (사용 여부에 따라 자유롭게)
 
     [Header("UI Elements")]
     public Dropdown raceDropdown;
@@ -26,25 +26,17 @@ public class FullCharacterCustomizer : MonoBehaviour
     public Button clearWardrobeButton;
     public Button exportButton;
 
+    // (기존) Export 시 여러 캐릭터를 나란히 놓고 싶다면 사용
     [Header("Exported Characters Positioning")]
-    public Vector3 exportPositionOffset = new Vector3(2.0f, 0, 0); // 각 캐릭터 간의 간격
-    private int exportedCharacterCount = 0;     // 내보낸 캐릭터 수 추적
-
-    // 드래그 관련 변수 추가
-    private bool isDragging = false;
-    private Vector3 dragOffset;
-    private Plane dragPlane;
-    private float dragSpeed = 10f; // 드래그 속도 조절 변수
+    public Vector3 exportPositionOffset = new Vector3(2.0f, 0, 0);
+    private int exportedCharacterCount = 0;
 
     // UMA 관련 내부 변수
     private List<DynamicCharacterAvatar> allCharacters = new List<DynamicCharacterAvatar>();
     private DynamicCharacterAvatar currentAvatar = null;
     private string currentRace = "HumanMale";    // 초기값
     private Dictionary<string, RaceData> raceOptions = new Dictionary<string, RaceData>();  // RaceName -> RaceData
-    private Dictionary<string, string> wardrobeRecipes = new Dictionary<string, string>();    // DisplayName -> RecipeName
-
-    // 선택된(Export된) 캐릭터: 마우스로 클릭하면 여기에 할당
-    private DynamicCharacterAvatar selectedAvatar = null;
+    private Dictionary<string, string> wardrobeRecipes = new Dictionary<string, string>();  // DisplayName -> RecipeName
 
     void Start()
     {
@@ -57,12 +49,12 @@ public class FullCharacterCustomizer : MonoBehaviour
 
         // UI 이벤트 연결
         createCharacterButton.onClick.AddListener(OnCreateCharacterButton);
-        // applyWardrobeButton.onClick.AddListener(ApplyWardrobe); // ApplyWardrobeButton 제거
         clearWardrobeButton.onClick.AddListener(ClearWardrobe);
         exportButton.onClick.AddListener(ExportCharacter);
 
         raceDropdown.onValueChanged.AddListener(OnRaceChanged);
-        wardrobeDropdown.onValueChanged.AddListener(delegate { ApplyWardrobe(); }); // 드롭다운 선택 시 ApplyWardrobe 호출
+        // Wardrobe 드롭다운: 선택 시 바로 ApplyWardrobe
+        wardrobeDropdown.onValueChanged.AddListener(delegate { ApplyWardrobe(); });
 
         // 드롭다운 초기화
         InitializeRaceDropdown();
@@ -73,113 +65,8 @@ public class FullCharacterCustomizer : MonoBehaviour
 
     void Update()
     {
-        if (mainCamera != null && mainCamera.gameObject.activeInHierarchy)
-        {
-            // 드래그 로직
-            if (isDragging)
-            {
-                if (Input.GetMouseButton(0))
-                {
-                    PerformDrag();
-                }
-                else if (Input.GetMouseButtonUp(0))
-                {
-                    EndDrag();
-                }
-            }
-            else
-            {
-                if (Input.GetMouseButtonDown(0))
-                {
-                    StartDrag();
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// 드래그 시작
-    /// </summary>
-    private void StartDrag()
-    {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, 1000f))
-        {
-            var clickedAvatar = hit.collider.GetComponentInParent<DynamicCharacterAvatar>();
-            if (clickedAvatar != null)
-            {
-                selectedAvatar = clickedAvatar;
-                Debug.Log($"{selectedAvatar.name} 캐릭터를 선택했습니다.");
-
-                // 드래그 시작 상태 설정
-                isDragging = true;
-
-                // 드래그할 평면 설정 (캐릭터의 현재 위치에 수평한 평면)
-                dragPlane = new Plane(Vector3.up, selectedAvatar.transform.position);
-
-                // 드래그 오프셋 계산
-                float distance;
-                if (dragPlane.Raycast(ray, out distance))
-                {
-                    Vector3 hitPoint = ray.GetPoint(distance);
-                    dragOffset = selectedAvatar.transform.position - hitPoint;
-                }
-                else
-                {
-                    Debug.LogWarning("드래그 평면과 Raycast가 교차하지 않습니다.");
-                    isDragging = false;
-                    selectedAvatar = null; // 드래그 실패 시 선택 초기화
-                }
-
-                // Animator 관련 기능이 있다면 추가할 수 있습니다.
-                // 예를 들어, 드래그 시작 시 애니메이션 변경
-                // var animator = selectedAvatar.GetComponent<Animator>();
-                // if (animator != null) animator.SetBool("isMoving", true);
-            }
-            else
-            {
-                Debug.Log("캐릭터가 아닌 객체를 클릭했습니다.");
-            }
-        }
-        else
-        {
-            Debug.Log("어떤 캐릭터도 클릭되지 않았습니다.");
-        }
-    }
-
-    /// <summary>
-    /// 드래그 수행
-    /// </summary>
-    private void PerformDrag()
-    {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        float distance;
-
-        if (dragPlane.Raycast(ray, out distance))
-        {
-            Vector3 hitPoint = ray.GetPoint(distance);
-            Vector3 targetPosition = hitPoint + dragOffset;
-
-            // 드래그 속도 조절: 부드러운 이동을 위해 Lerp 사용
-            selectedAvatar.transform.position = Vector3.Lerp(selectedAvatar.transform.position, targetPosition, dragSpeed * Time.deltaTime);
-        }
-    }
-
-    /// <summary>
-    /// 드래그 종료
-    /// </summary>
-    private void EndDrag()
-    {
-        isDragging = false;
-        Debug.Log($"{selectedAvatar.name} 캐릭터 드래그 종료.");
-        selectedAvatar = null; // 선택된 캐릭터 초기화
-
-        // Animator 관련 기능이 있다면 추가할 수 있습니다.
-        // 예를 들어, 드래그 종료 시 애니메이션 변경
-        // var animator = selectedAvatar.GetComponent<Animator>();
-        // if (animator != null) animator.SetBool("isMoving", false);
+        // 필요 시 다른 로직 추가 가능
+        // (마우스 드래그/회전 기능은 CharacterControllerCombined가 전담하므로 여기서는 제거)
     }
 
     /// <summary>
@@ -397,7 +284,7 @@ public class FullCharacterCustomizer : MonoBehaviour
     }
 
     /// <summary>
-    /// "Apply Wardrobe" 버튼 → 선택한 옷 적용
+    /// "Apply Wardrobe" → 드롭다운에서 선택한 옷 적용
     /// </summary>
     void ApplyWardrobe()
     {
@@ -426,14 +313,13 @@ public class FullCharacterCustomizer : MonoBehaviour
             return;
         }
 
-        // 수정된 부분: wardrobeRecipe 객체 대신 wardrobeRecipe.name을 전달
         currentAvatar.SetSlot(wardrobeRecipe.wardrobeSlot, wardrobeRecipe.name);
         currentAvatar.BuildCharacter();
         Debug.Log($"Wardrobe 적용됨: {selected}");
     }
 
     /// <summary>
-    /// "Clear Wardrobe" 버튼 → 현재 Wardrobe 모두 제거
+    /// "Clear Wardrobe" → 현재 Wardrobe 모두 제거
     /// </summary>
     void ClearWardrobe()
     {
@@ -446,7 +332,7 @@ public class FullCharacterCustomizer : MonoBehaviour
     }
 
     /// <summary>
-    /// "Export" 버튼 → 커스터마이징이 끝난 캐릭터를 메인씬으로 이동
+    /// "Export" 버튼 → 커스터마이징이 끝난 캐릭터를 메인 카메라 위치로 이동 + CharacterControllerCombined 부착
     /// </summary>
     void ExportCharacter()
     {
@@ -456,10 +342,14 @@ public class FullCharacterCustomizer : MonoBehaviour
             return;
         }
 
-        // 각 캐릭터를 고유한 위치에 배치
-        Vector3 newPosition = mainSceneSpawnPoint.position + exportPositionOffset * exportedCharacterCount;
+        // (1) 캐릭터를 메인 카메라 '앞'에 배치
+        Vector3 newPosition = mainCamera.transform.position + mainCamera.transform.forward * 2.0f;
         currentAvatar.transform.position = newPosition;
-        currentAvatar.transform.rotation = mainSceneSpawnPoint.rotation;
+
+        // (2) 카메라의 수평(Y) 회전만 가져오기
+        //     Camera.main.transform.eulerAngles.y만 떼와서 사용
+        float cameraY = mainCamera.transform.eulerAngles.y;
+        currentAvatar.transform.rotation = Quaternion.Euler(0f, cameraY, 0f);
 
         // Collider가 없으면 추가
         if (currentAvatar.GetComponent<Collider>() == null)
@@ -469,13 +359,157 @@ public class FullCharacterCustomizer : MonoBehaviour
             Debug.Log($"Collider가 없는 {currentAvatar.name}에 BoxCollider를 추가했습니다.");
         }
 
-        // 캐릭터 수 증가
-        exportedCharacterCount++;
+        // (3) 캐릭터 제어 스크립트(CharacterControllerCombined) 부착
+        if (currentAvatar.GetComponent<CharacterControllerCombined>() == null)
+        {
+            currentAvatar.gameObject.AddComponent<CharacterControllerCombined>();
+        }
 
-        // 카메라 전환: 커스터마이징 카메라 끄고, 메인 카메라 켜기
+        // 카메라 전환
         if (customizationCamera != null) customizationCamera.gameObject.SetActive(false);
-        if (mainCamera != null) mainCamera.gameObject.SetActive(true);  
+        if (mainCamera != null) mainCamera.gameObject.SetActive(true);
 
-        Debug.Log($"{currentAvatar.name} 캐릭터를 메인씬으로 내보냈습니다. 위치: {newPosition}");
+        Debug.Log($"{currentAvatar.name} 캐릭터를 메인 카메라 앞으로 내보냈습니다. 위치: {newPosition}");
     }
 }
+
+    // ---------------------------------------------------------------------------
+    // CharacterControllerCombined
+    //  - 단일 클릭 → 드래그
+    //  - 더블 클릭 → 회전
+    //  - Delete 키 → 캐릭터 삭제
+    // ---------------------------------------------------------------------------
+    public class CharacterControllerCombined : MonoBehaviour
+{
+    // 더블 클릭 감지 변수
+    private float lastClickTime = 0f;
+    private float doubleClickThreshold = 0.3f; // 더블 클릭 인식 시간 (초)
+
+    // 회전 제어 변수
+    private bool isRotating = false;
+    private Vector3 lastMousePosition;
+    [Range(0.1f, 10f)]
+    public float rotationSpeed = 1f; // 회전 속도 조절
+
+    // 드래그 제어 변수
+    private bool isDragging = false;
+    private Vector3 dragOffset;
+    private Plane dragPlane;
+
+    private Camera mainCamera;
+
+    void Start()
+    {
+        // 메인 카메라 찾기 (Camera.main)
+        mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            Debug.LogError("메인 카메라가 없습니다. Camera.main을 확인하세요.");
+        }
+    }
+
+    void Update()
+    {
+        HandleMouseInput();
+
+        if (isRotating && Input.GetMouseButton(0))
+        {
+            RotateCharacter();
+        }
+
+        if (isDragging && Input.GetMouseButton(0))
+        {
+            DragCharacter();
+        }
+
+        // Delete 키 입력 감지
+        if ((isRotating || isDragging) && Input.GetKeyDown(KeyCode.Delete))
+        {
+            DestroyCharacter();
+        }
+    }
+
+    void HandleMouseInput()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            float timeSinceLastClick = Time.time - lastClickTime;
+
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit))
+            {
+                // 클릭한 객체가 자기 자신인지 확인
+                if (hit.transform == this.transform)
+                {
+                    // 더블 클릭 확인
+                    if (timeSinceLastClick <= doubleClickThreshold)
+                    {
+                        // 더블 클릭 → 회전 모드
+                        isRotating = true;
+                        isDragging = false;
+                        lastMousePosition = Input.mousePosition;
+                        return;
+                    }
+                    else
+                    {
+                        // 단일 클릭 → 드래그 모드
+                        isDragging = true;
+                        isRotating = false;
+                        dragPlane = new Plane(Vector3.up, transform.position);
+                        float enter = 0.0f;
+                        if (dragPlane.Raycast(ray, out enter))
+                        {
+                            Vector3 hitPoint = ray.GetPoint(enter);
+                            dragOffset = transform.position - hitPoint;
+                        }
+                    }
+                }
+            }
+
+            lastClickTime = Time.time;
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            isRotating = false;
+            isDragging = false;
+        }
+    }
+
+    void RotateCharacter()
+    {
+        Vector3 currentMousePosition = Input.mousePosition;
+        float deltaX = currentMousePosition.x - lastMousePosition.x;
+
+        // 수평 회전
+        transform.Rotate(0, deltaX * rotationSpeed, 0, Space.World);
+
+        lastMousePosition = currentMousePosition;
+    }
+
+    void DragCharacter()
+    {
+        Ray camRay = mainCamera.ScreenPointToRay(Input.mousePosition);
+        float enter = 0.0f;
+
+        if (dragPlane.Raycast(camRay, out enter))
+        {
+            Vector3 hitPoint = camRay.GetPoint(enter);
+            Vector3 targetPosition = hitPoint + dragOffset;
+
+            // Y축은 고정 (원하면 자유롭게 조절)
+            targetPosition.y = transform.position.y;
+
+            transform.position = targetPosition;
+        }
+    }
+
+    void DestroyCharacter()
+    {
+        Debug.Log($"{gameObject.name}이(가) 삭제되었습니다.");
+        Destroy(gameObject);
+    }
+}
+

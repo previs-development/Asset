@@ -37,6 +37,12 @@ public class PropMover : MonoBehaviour
         {
             DragProp();
         }
+
+        // Delete 키 입력 감지
+        if ((isRotating || isDragging) && Input.GetKeyDown(KeyCode.Delete))
+        {
+            DestroyProp();
+        }
     }
 
     void HandleMouseInput()
@@ -108,5 +114,12 @@ public class PropMover : MonoBehaviour
 
             transform.position = new Vector3(targetPosition.x, targetPosition.y, targetPosition.z);
         }
+    }
+
+    void DestroyProp()
+    {
+        // 프롭 삭제 전에 필요한 추가 작업이 있으면 여기에 작성
+        Debug.Log($"{gameObject.name}이(가) 삭제되었습니다.");
+        Destroy(gameObject);
     }
 }

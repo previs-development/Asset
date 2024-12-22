@@ -1,0 +1,86 @@
+좋아요! 마우스 클릭으로 Target을 선택하고, 키보드로 움직이는 시스템을 단계별로 차근차근 만들어 보겠습니다.
+
+1. 새 스크립트 생성
+1-1. 새로운 스크립트 파일 만들기
+Unity의 Project 창에서 Scripts 폴더로 이동합니다.
+우클릭 → Create → C# Script 선택.
+스크립트 이름을 MouseSelectAndKeyboardMove로 설정합니다.
+스크립트를 더블 클릭하여 Visual Studio 또는 코드 편집기에서 엽니다.
+2. 스크립트 작성
+2-1. 코드 입력
+아래의 코드를 복사해서 새 스크립트에 붙여넣으세요.
+
+csharp
+코드 복사
+using UnityEngine;
+
+public class MouseSelectAndKeyboardMove : MonoBehaviour
+{
+    public float moveSpeed = 1f; // 이동 속도
+    private Transform currentTarget; // 현재 선택된 관절(Target)
+    public Camera mainCamera; // 카메라
+
+    void Update()
+    {
+        // 마우스 클릭으로 Target 선택
+        if (Input.GetMouseButtonDown(0)) // 왼쪽 마우스 클릭
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                currentTarget = hit.transform; // 클릭된 오브젝트를 Target으로 설정
+                Debug.Log("Selected Target: " + currentTarget.name);
+            }
+        }
+
+        // 키보드로 선택된 Target 이동
+        if (currentTarget != null)
+        {
+            if (Input.GetKey(KeyCode.W)) // 앞으로 (Z+)
+                currentTarget.position += Vector3.forward * moveSpeed * Time.deltaTime;
+
+            if (Input.GetKey(KeyCode.S)) // 뒤로 (Z-)
+                currentTarget.position += Vector3.back * moveSpeed * Time.deltaTime;
+
+            if (Input.GetKey(KeyCode.A)) // 왼쪽으로 (X-)
+                currentTarget.position += Vector3.left * moveSpeed * Time.deltaTime;
+
+            if (Input.GetKey(KeyCode.D)) // 오른쪽으로 (X+)
+                currentTarget.position += Vector3.right * moveSpeed * Time.deltaTime;
+
+            if (Input.GetKey(KeyCode.Q)) // 아래로 (Y-)
+                currentTarget.position += Vector3.down * moveSpeed * Time.deltaTime;
+
+            if (Input.GetKey(KeyCode.E)) // 위로 (Y+)
+                currentTarget.position += Vector3.up * moveSpeed * Time.deltaTime;
+        }
+    }
+}
+3. GameObject에 스크립트 추가
+3-1. 빈 오브젝트 생성
+Hierarchy 창에서 우클릭 → Create Empty 선택.
+생성된 빈 오브젝트의 이름을 MouseControllerObject로 변경합니다.
+3-2. 스크립트 추가
+MouseControllerObject를 선택합니다.
+Inspector 창에서 Add Component 클릭.
+MouseSelectAndKeyboardMove 스크립트를 검색하여 추가합니다.
+3-3. Main Camera 연결
+MouseControllerObject의 Inspector 창에서 Main Camera 필드에 현재 사용 중인 카메라(예: Main Camera)를 드래그 앤 드롭합니다.
+4. Target에 Collider 추가
+4-1. 각 관절에 Collider 추가
+Hierarchy에서 각 관절(Target, 예: LeftArm_target, RightArm_target)을 선택합니다.
+Inspector 창에서 Add Component 클릭 → Collider를 검색하여 선택.
+추천: Sphere Collider 또는 Box Collider.
+Collider의 크기와 위치를 조정하여 Target과 잘 맞도록 설정합니다.
+5. 테스트
+5-1. Play 모드에서 확인
+Play 버튼을 눌러 실행합니다.
+마우스 왼쪽 클릭으로 Target을 선택합니다.
+선택된 Target을 키보드(W, A, S, D, Q, E)로 이동시켜보세요.
+6. 디버깅 및 개선
+6-1. Debug 확인
+Console 창에서 "Selected Target: ..." 메시지가 출력되면 선택이 잘 되고 있는 것입니다.
+6-2. 추가 개선
+선택된 Target이 강조되도록 색상 변경 또는 Highlight를 추가할 수 있습니다.
+선택 해제를 위해 빈 공간 클릭 시 currentTarget을 null로 설정하는 로직을 추가할 수 있습니다.
+이 단계별 과정을 따라 하면 마우스 클릭으로 관절을 선택하고 키보드로 움직일 수 있는 시스템이 완성됩니다. 문제가 생기면 알려주세요! 😊
